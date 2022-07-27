@@ -8,7 +8,7 @@ export function useConversations() {
   return useContext(ConversationsContext)
 }
 
-export function ConversationsProvider({ children }) {
+export function ConversationsProvider({ id, children }) {
   const [conversations, setConversations] = useLocalStorage('conversations', [])
   const [selectedConversationIndex, setSelectedConversationIndex] = useState(0)
   const { contacts } = useContacts()
@@ -18,6 +18,31 @@ export function ConversationsProvider({ children }) {
       ...prevConversations,
       { recipients, messages: [] },
     ])
+  }
+
+  function addMessageToConversation({ recipients, text, sender }) {
+    setConversations((prev) => {
+      let madeChange = false
+      const newMessage = { sender, text }
+
+      const newConversastions = prev.map((conversation) => {
+        if (arrayEquality(conversation.recipients, recipients)) {
+          madeChange = true
+          return {
+            ...conversation,
+            messages: [...conversation.messages, newMessage],
+          }
+        }
+        return conversation
+      })
+
+      if (madeChange) return newConversastions
+      return [...prev, { recipients, messages: [newMessage] }]
+    })
+  }
+
+  function sendMessage(recipients, text) {
+    addMessageToConversation({ recipients, text, sender: id })
   }
 
   const formattedConversations = conversations.map((conversation, index) => {
@@ -35,6 +60,7 @@ export function ConversationsProvider({ children }) {
       value={{
         conversations: formattedConversations,
         createConversation,
+        sendMessage,
         selectedConversation: formattedConversations[selectedConversationIndex],
         selectConversationIndex: setSelectedConversationIndex,
       }}
@@ -42,4 +68,11 @@ export function ConversationsProvider({ children }) {
       {children}
     </ConversationsContext.Provider>
   )
+}
+
+function arrayEquality(a, b) {
+  if (a.length !== b.length) return false
+  a.sort()
+  b.sort()
+  return a.every((element, index) => element === b[index])
 }
