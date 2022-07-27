@@ -1,3 +1,14 @@
+import React from 'react'
+import useLocalStorage from '../hooks/useLocalStorage'
+import Login from './Login'
+
 export default function App() {
-  return <h1>Hello, World!</h1>
+  const [id, setId] = useLocalStorage('id')
+
+  return (
+    <>
+      {id}
+      <Login onIdSubmit={setId} />
+    </>
+  )
 }
