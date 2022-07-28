@@ -1,6 +1,7 @@
-import React, { useContext, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useState } from 'react'
 import useLocalStorage from '../hooks/useLocalStorage'
 import { useContacts } from './ContactsProvider'
+import { useSocket } from './SocketProvider'
 
 const ConversationsContext = React.createContext()
 
@@ -12,6 +13,38 @@ export function ConversationsProvider({ id, children }) {
   const [conversations, setConversations] = useLocalStorage('conversations', [])
   const [selectedConversationIndex, setSelectedConversationIndex] = useState(0)
   const { contacts } = useContacts()
+  const socket = useSocket()
+
+  useEffect(() => {
+    if (socket == null) return
+    socket.on('message:recieve', addMessageToConversation)
+
+    return () => socket.off('message:recieve')
+  }, [socket])
+
+  const addMessageToConversation = useCallback(
+    ({ recipients, text, sender }) => {
+      setConversations((prev) => {
+        let madeChange = false
+        const newMessage = { sender, text }
+
+        const newConversastions = prev.map((conversation) => {
+          if (arrayEquality(conversation.recipients, recipients)) {
+            madeChange = true
+            return {
+              ...conversation,
+              messages: [...conversation.messages, newMessage],
+            }
+          }
+          return conversation
+        })
+
+        if (madeChange) return newConversastions
+        return [...prev, { recipients, messages: [newMessage] }]
+      })
+    },
+    [setConversations]
+  )
 
   function createConversation(recipients) {
     setConversations((prevConversations) => [
@@ -20,28 +53,8 @@ export function ConversationsProvider({ id, children }) {
     ])
   }
 
-  function addMessageToConversation({ recipients, text, sender }) {
-    setConversations((prev) => {
-      let madeChange = false
-      const newMessage = { sender, text }
-
-      const newConversastions = prev.map((conversation) => {
-        if (arrayEquality(conversation.recipients, recipients)) {
-          madeChange = true
-          return {
-            ...conversation,
-            messages: [...conversation.messages, newMessage],
-          }
-        }
-        return conversation
-      })
-
-      if (madeChange) return newConversastions
-      return [...prev, { recipients, messages: [newMessage] }]
-    })
-  }
-
   function sendMessage(recipients, text) {
+    socket.emit('message:send', { recipients, text })
     addMessageToConversation({ recipients, text, sender: id })
   }
 
