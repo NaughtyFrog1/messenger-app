@@ -15,13 +15,6 @@ export function ConversationsProvider({ id, children }) {
   const { contacts } = useContacts()
   const socket = useSocket()
 
-  useEffect(() => {
-    if (socket == null) return
-    socket.on('message:recieve', addMessageToConversation)
-
-    return () => socket.off('message:recieve')
-  }, [socket])
-
   const addMessageToConversation = useCallback(
     ({ recipients, text, sender }) => {
       setConversations((prev) => {
@@ -45,6 +38,13 @@ export function ConversationsProvider({ id, children }) {
     },
     [setConversations]
   )
+
+  useEffect(() => {
+    if (socket == null) return
+    socket.on('message:recieve', addMessageToConversation)
+
+    return () => socket.off('message:recieve')
+  }, [socket, addMessageToConversation])
 
   function createConversation(recipients) {
     setConversations((prevConversations) => [
