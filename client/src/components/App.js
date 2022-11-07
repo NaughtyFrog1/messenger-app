@@ -7,7 +7,7 @@ import Dashboard from './Dashboard'
 import Login from './Login'
 
 export default function App() {
-  const [id, setId] = useLocalStorage('id')
+  const [id, setId] = useLocalStorage('id', '')
 
   const dashboard = (
     <SocketProvider id={id}>
